@@ -18,6 +18,13 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="TesterGame.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="TesterGame.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FE9DA968-FC75-4F50-A3D9-9465615B1655}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -151,9 +158,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="main.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
