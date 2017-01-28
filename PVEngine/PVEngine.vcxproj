@@ -70,12 +70,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>C:\VulkanSDK\1.0.33.0\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.0.33.0\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.0.39.1\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.0.39.1\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <IncludePath>C:\VulkanSDK\1.0.33.0\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.0.33.0\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\VulkanSDK\1.0.39.1\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.0.39.1\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

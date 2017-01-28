@@ -6,6 +6,9 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PVEngine", "PVEngine\PVEngine.vcxproj", "{B5D7AA35-7B5A-4829-BA10-93B1DFC23522}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TesterGame", "TesterGame\TesterGame.vcxproj", "{FE9DA968-FC75-4F50-A3D9-9465615B1655}"
+	ProjectSection(ProjectDependencies) = postProject
+		{B5D7AA35-7B5A-4829-BA10-93B1DFC23522} = {B5D7AA35-7B5A-4829-BA10-93B1DFC23522}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

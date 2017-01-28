@@ -78,16 +78,16 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir);C:\VulkanSDK\1.0.33.0\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.0.33.0\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(SolutionDir)Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir);C:\VulkanSDK\1.0.39.1\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.0.39.1\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(SolutionDir)Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir);C:\VulkanSDK\1.0.33.0\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\VulkanSDK\1.0.33.0\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(SolutionDir)Debug;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir);C:\VulkanSDK\1.0.39.1\Include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\include;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glm;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\VulkanSDK\1.0.39.1\Bin32;C:\Users\Josh\Documents\Visual Studio 2015\Libraries\glfw-3.2.1.bin.WIN32\lib-vc2015;$(SolutionDir)Debug;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
