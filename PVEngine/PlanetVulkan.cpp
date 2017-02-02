@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <cstring>
 #include <vector>
+#include <map>
 
 namespace PVEngine
 {
@@ -20,6 +21,8 @@ namespace PVEngine
 	{
 		CreateInstance();
 		SetupDebugCallback();
+		GetPhysicalDevices();
+		CreateLogicalDevice();
 	}
 
 	void PlanetVulkan::CreateInstance()
@@ -145,6 +148,141 @@ namespace PVEngine
 		{
 			std::cout << "Debug Callback setup successful" << std::endl;
 		}
+	}
+
+	void PlanetVulkan::GetPhysicalDevices()
+	{
+		uint32_t physicalDeviceCount = 0;
+		vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+		if (physicalDeviceCount == 0)
+		{
+			throw std::runtime_error("No devices found with Vulkan supprt");
+		}
+
+		std::vector<VkPhysicalDevice> foundPhysicalDevices(physicalDeviceCount);
+		vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, foundPhysicalDevices.data());
+
+		std::multimap<int, VkPhysicalDevice> rankedDevices;
+
+		for (const auto& currentDevice : foundPhysicalDevices)
+		{
+			int score = RateDeviceSuitability(currentDevice);
+			rankedDevices.insert(std::make_pair(score, currentDevice));
+		}
+
+		if (rankedDevices.rbegin()->first > 0)
+		{
+			physicalDevice = rankedDevices.rbegin()->second;		
+			std::cout << "Physical device found+" << std::endl;	
+		}
+		else
+		{
+			throw std::runtime_error("No physical devices meet necessary criteria");
+		}
+	}
+
+	int PlanetVulkan::RateDeviceSuitability(VkPhysicalDevice deviceToRate)
+	{
+		int score = 0;
+
+		QueueFamilyIndices indices = FindQueueFamilies(deviceToRate);
+		if (!indices.isComplete())
+		{
+			return 0;
+		}
+
+		VkPhysicalDeviceFeatures deviceFeatures;
+		VkPhysicalDeviceProperties deviceProperties;
+		vkGetPhysicalDeviceProperties(deviceToRate,&deviceProperties);
+		vkGetPhysicalDeviceFeatures(deviceToRate,&deviceFeatures);
+
+		if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+		{
+			score += 1000;
+		}
+
+		score += deviceProperties.limits.maxImageDimension2D;
+
+		if (!deviceFeatures.geometryShader)
+		{
+			return 0;
+		}
+
+		return score;
+	}
+
+	void PlanetVulkan::CreateLogicalDevice()
+	{
+		QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
+
+		VkDeviceQueueCreateInfo queueCreateInfo = {};
+		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		queueCreateInfo.pNext = nullptr;
+		queueCreateInfo.flags = 0;
+		queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
+		queueCreateInfo.queueCount = 1;
+		const float queuePriority = 1.0f;
+		queueCreateInfo.pQueuePriorities = &queuePriority;
+
+		VkPhysicalDeviceFeatures deviceFeatures = {};
+
+		VkDeviceCreateInfo createInfo = {};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		createInfo.pNext = nullptr;
+		createInfo.flags = 0;
+		createInfo.queueCreateInfoCount = 1;
+		createInfo.pQueueCreateInfos = &queueCreateInfo;
+		if (enableValidationLayers)
+		{
+			createInfo.enabledLayerCount = validationLayers.size();
+			createInfo.ppEnabledLayerNames = validationLayers.data();
+		}
+		else
+		{
+			createInfo.enabledLayerCount = 0;
+			createInfo.ppEnabledLayerNames = nullptr;
+		}
+		createInfo.enabledExtensionCount = 0;
+		createInfo.ppEnabledExtensionNames = nullptr;
+		createInfo.pEnabledFeatures = &deviceFeatures;
+
+		if (vkCreateDevice(physicalDevice, &createInfo , nullptr, logicalDevice.replace()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create logical device");
+		}
+		else
+		{
+			std::cout << "Logical device created successfully" << std::endl;
+		}
+
+		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+	}
+
+	QueueFamilyIndices PlanetVulkan::FindQueueFamilies(VkPhysicalDevice device)
+	{
+		QueueFamilyIndices indices;
+
+		uint32_t queueFamilyCount = 0;
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+		int i = 0;
+		for (const auto &queueFamily : queueFamilies)
+		{
+			if (queueFamily.queueCount > 0 && queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT)
+			{
+				indices.graphicsFamily = i;
+			}
+
+			if (indices.isComplete())
+			{
+				break;
+			}
+			i++;
+		}
+		return indices;
 	}
 	
 	

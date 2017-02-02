@@ -8,6 +8,16 @@
 
 namespace PVEngine
 {
+	struct QueueFamilyIndices
+	{
+		int graphicsFamily = -1;
+
+		bool isComplete()
+		{
+			return graphicsFamily >= 0;
+		}
+	};
+
 	class PlanetVulkan
 	{
 	public:
@@ -24,6 +34,14 @@ namespace PVEngine
 		std::vector<const char*> GetRequiredExtensions();
 
 		void SetupDebugCallback();
+
+		void GetPhysicalDevices();
+
+		int RateDeviceSuitability(VkPhysicalDevice deviceToRate);
+
+		void CreateLogicalDevice();
+
+		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
 
 		VkResult CreateDebugReportCallbackEXT(
@@ -71,13 +89,20 @@ namespace PVEngine
 			std::cerr << "Validation layer: " << msg << std::endl;
 			return VK_FALSE;
 		};
+		const std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation" };
 
 		///Vulkan Handles
 		VDeleter<VkInstance> instance { vkDestroyInstance };
 
 		VDeleter<VkDebugReportCallbackEXT> callback {instance, DestroyDebugReportCallbackEXT };
 
-		const std::vector<const char*> validationLayers = {"VK_LAYER_LUNARG_standard_validation"};
+		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+
+		VDeleter<VkDevice> logicalDevice{ vkDestroyDevice };
+
+		VkQueue graphicsQueue;
+
+		
 
 #ifdef NDEBUG
 		const bool enableValidationLayers = false;
