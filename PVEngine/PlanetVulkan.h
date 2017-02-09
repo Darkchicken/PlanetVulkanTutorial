@@ -4,17 +4,18 @@
 #include <stdexcept>
 #include <vector>
 
+#include "Window.h"
 #include "VDeleter.h"
 
 namespace PVEngine
 {
 	struct QueueFamilyIndices
 	{
-		int graphicsFamily = -1;
-
+		int displayFamily = -1;
+		
 		bool isComplete()
 		{
-			return graphicsFamily >= 0;
+			return displayFamily >= 0;
 		}
 	};
 
@@ -26,6 +27,8 @@ namespace PVEngine
 
 		void InitVulkan();
 
+		Window windowObj;
+
 	private:
 		void CreateInstance();
 
@@ -34,6 +37,8 @@ namespace PVEngine
 		std::vector<const char*> GetRequiredExtensions();
 
 		void SetupDebugCallback();
+
+		void CreateSurface();
 
 		void GetPhysicalDevices();
 
@@ -96,11 +101,13 @@ namespace PVEngine
 
 		VDeleter<VkDebugReportCallbackEXT> callback {instance, DestroyDebugReportCallbackEXT };
 
+		VDeleter<VkSurfaceKHR> surface{instance, vkDestroySurfaceKHR};
+
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
 		VDeleter<VkDevice> logicalDevice{ vkDestroyDevice };
 
-		VkQueue graphicsQueue;
+		VkQueue displayQueue;
 
 		
 

@@ -19,8 +19,10 @@ namespace PVEngine
 
 	void PlanetVulkan::InitVulkan()
 	{
+		windowObj.Create();
 		CreateInstance();
 		SetupDebugCallback();
+		CreateSurface();
 		GetPhysicalDevices();
 		CreateLogicalDevice();
 	}
@@ -150,6 +152,18 @@ namespace PVEngine
 		}
 	}
 
+	void PlanetVulkan::CreateSurface()
+	{
+		if (glfwCreateWindowSurface(instance, windowObj.window , nullptr, surface.replace()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create window surface");
+		}
+		else
+		{
+			std::cout << "Window surface created successfully" << std::endl;
+		}
+	}
+
 	void PlanetVulkan::GetPhysicalDevices()
 	{
 		uint32_t physicalDeviceCount = 0;
@@ -173,7 +187,7 @@ namespace PVEngine
 		if (rankedDevices.rbegin()->first > 0)
 		{
 			physicalDevice = rankedDevices.rbegin()->second;		
-			std::cout << "Physical device found+" << std::endl;	
+			std::cout << "Physical device found" << std::endl;	
 		}
 		else
 		{
@@ -219,7 +233,7 @@ namespace PVEngine
 		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 		queueCreateInfo.pNext = nullptr;
 		queueCreateInfo.flags = 0;
-		queueCreateInfo.queueFamilyIndex = indices.graphicsFamily;
+		queueCreateInfo.queueFamilyIndex = indices.displayFamily;
 		queueCreateInfo.queueCount = 1;
 		const float queuePriority = 1.0f;
 		queueCreateInfo.pQueuePriorities = &queuePriority;
@@ -255,7 +269,7 @@ namespace PVEngine
 			std::cout << "Logical device created successfully" << std::endl;
 		}
 
-		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+		vkGetDeviceQueue(logicalDevice, indices.displayFamily, 0, &displayQueue);
 	}
 
 	QueueFamilyIndices PlanetVulkan::FindQueueFamilies(VkPhysicalDevice device)
@@ -271,9 +285,12 @@ namespace PVEngine
 		int i = 0;
 		for (const auto &queueFamily : queueFamilies)
 		{
-			if (queueFamily.queueCount > 0 && queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT)
+			VkBool32 presentSupport = false;
+			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
+
+			if (queueFamily.queueCount > 0 && queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT && presentSupport)
 			{
-				indices.graphicsFamily = i;
+				indices.displayFamily = i;
 			}
 
 			if (indices.isComplete())

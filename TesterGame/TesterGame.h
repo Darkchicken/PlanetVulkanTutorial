@@ -18,7 +18,6 @@ private:
 	void GameLoop();
 
 	//member variables
-	PVEngine::Window m_window;
 	PVEngine::PlanetVulkan m_engine;
 };
 
