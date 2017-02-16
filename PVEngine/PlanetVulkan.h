@@ -19,6 +19,13 @@ namespace PVEngine
 		}
 	};
 
+	struct SwapChainSupportDetails
+	{
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
+
 	class PlanetVulkan
 	{
 	public:
@@ -47,6 +54,16 @@ namespace PVEngine
 		void CreateLogicalDevice();
 
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
+
+		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+
+		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+
+		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
+
+		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
+
+		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
 
 		VkResult CreateDebugReportCallbackEXT(
@@ -95,6 +112,8 @@ namespace PVEngine
 			return VK_FALSE;
 		};
 		const std::vector<const char*> validationLayers = { "VK_LAYER_LUNARG_standard_validation" };
+
+		const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 		///Vulkan Handles
 		VDeleter<VkInstance> instance { vkDestroyInstance };

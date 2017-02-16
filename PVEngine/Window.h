@@ -12,11 +12,13 @@ namespace PVEngine
 		int Create();
 
 		GLFWwindow* window;
-	private:
 
 		//dimensions for the window
 		int windowWidth = 800;
 		int windowHeight = 600;
+	private:
+
+		
 	};
 }
 
