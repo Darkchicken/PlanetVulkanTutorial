@@ -53,6 +53,10 @@ namespace PVEngine
 
 		void CreateLogicalDevice();
 
+		void CreateSwapChain();
+
+		void CreateImageViews();
+
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
@@ -127,6 +131,18 @@ namespace PVEngine
 		VDeleter<VkDevice> logicalDevice{ vkDestroyDevice };
 
 		VkQueue displayQueue;
+
+		VDeleter<VkSwapchainKHR> swapChain{logicalDevice, vkDestroySwapchainKHR};
+
+		std::vector<VkImage> swapChainImages;
+
+		std::vector<VDeleter<VkImageView>> swapChainImageViews;
+
+
+
+		// store swap chain details
+		VkFormat swapChainImageFormat;
+		VkExtent2D swapChainExtent;
 
 		
 
