@@ -3,12 +3,34 @@
 #include <iostream>
 #include <stdexcept>
 #include <vector>
+#include <fstream>
 
 #include "Window.h"
 #include "VDeleter.h"
 
 namespace PVEngine
 {
+
+	static std::vector<char> ReadFile(const std::string& filename)
+	{
+		std::ifstream file(filename, std::ios::ate | std::ios::binary);
+
+		if (!file.is_open())
+		{
+			throw std::runtime_error("Failed to open file");
+		}
+
+		size_t fileSize = (size_t)file.tellg();
+		std::vector<char> buffer(fileSize);
+
+		file.seekg(0);
+		file.read(buffer.data(), fileSize);
+		file.close();
+
+		return buffer;
+	}
+
+
 	struct QueueFamilyIndices
 	{
 		int displayFamily = -1;
@@ -56,6 +78,10 @@ namespace PVEngine
 		void CreateSwapChain();
 
 		void CreateImageViews();
+
+		void CreateGraphicsPipeline();
+
+		void CreateShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& shaderModule);
 
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
