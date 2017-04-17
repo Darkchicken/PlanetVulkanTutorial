@@ -164,6 +164,8 @@ namespace PVEngine
 
 		std::vector<VDeleter<VkImageView>> swapChainImageViews;
 
+		VDeleter<VkPipelineLayout> pipelineLayout{logicalDevice, vkDestroyPipelineLayout};
+
 
 
 		// store swap chain details
