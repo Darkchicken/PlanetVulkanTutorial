@@ -79,6 +79,8 @@ namespace PVEngine
 
 		void CreateImageViews();
 
+		void CreateRenderPass();
+
 		void CreateGraphicsPipeline();
 
 		void CreateShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& shaderModule);
@@ -164,7 +166,11 @@ namespace PVEngine
 
 		std::vector<VDeleter<VkImageView>> swapChainImageViews;
 
+		VDeleter<VkRenderPass> renderPass{logicalDevice, vkDestroyRenderPass};
+
 		VDeleter<VkPipelineLayout> pipelineLayout{logicalDevice, vkDestroyPipelineLayout};
+
+		VDeleter<VkPipeline> graphicsPipeline{logicalDevice, vkDestroyPipeline};
 
 
 
