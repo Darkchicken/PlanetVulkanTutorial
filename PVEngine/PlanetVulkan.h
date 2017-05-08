@@ -56,6 +56,8 @@ namespace PVEngine
 
 		void InitVulkan();
 
+		void GameLoop();
+
 		Window windowObj;
 
 	private:
@@ -84,6 +86,16 @@ namespace PVEngine
 		void CreateGraphicsPipeline();
 
 		void CreateShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& shaderModule);
+
+		void CreateFramebuffers();
+
+		void CreateCommandPool();
+		
+		void CreateCommandBuffers();
+
+		void CreateSemaphores();
+
+		void DrawFrame();
 
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
@@ -171,6 +183,16 @@ namespace PVEngine
 		VDeleter<VkPipelineLayout> pipelineLayout{logicalDevice, vkDestroyPipelineLayout};
 
 		VDeleter<VkPipeline> graphicsPipeline{logicalDevice, vkDestroyPipeline};
+
+		std::vector<VDeleter<VkFramebuffer>> swapChainFramebuffers;
+
+		VDeleter<VkCommandPool> commandPool{logicalDevice, vkDestroyCommandPool};
+
+		std::vector<VkCommandBuffer> commandBuffers;
+
+		VDeleter<VkSemaphore> imageAvailableSemaphore {logicalDevice, vkDestroySemaphore};
+
+		VDeleter<VkSemaphore> renderFinishedSemaphore{ logicalDevice, vkDestroySemaphore };
 
 
 

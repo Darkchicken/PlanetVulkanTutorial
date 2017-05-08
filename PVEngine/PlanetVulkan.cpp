@@ -30,6 +30,23 @@ namespace PVEngine
 		CreateImageViews();
 		CreateRenderPass();
 		CreateGraphicsPipeline();
+		CreateFramebuffers();
+		CreateCommandPool();
+		CreateCommandBuffers();
+		CreateSemaphores();
+	}
+
+	void PlanetVulkan::GameLoop()
+	{
+		while (!glfwWindowShouldClose(windowObj.window))
+		{
+			glfwPollEvents();
+
+			DrawFrame();
+		}
+
+		vkDeviceWaitIdle(logicalDevice);
+		glfwDestroyWindow(windowObj.window);
 	}
 
 	void PlanetVulkan::CreateInstance()
@@ -393,12 +410,22 @@ namespace PVEngine
 		subpass.colorAttachmentCount = 1;
 		subpass.pColorAttachments = &colorAttachmentRef;
 
+		VkSubpassDependency dependency = {};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
 		VkRenderPassCreateInfo renderPassInfo = {};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 		renderPassInfo.attachmentCount = 1;
 		renderPassInfo.pAttachments = &colorAttachment;
 		renderPassInfo.subpassCount = 1;
 		renderPassInfo.pSubpasses = &subpass;
+		renderPassInfo.dependencyCount = 1;
+		renderPassInfo.pDependencies = &dependency;
 
 		if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, renderPass.replace()) != VK_SUCCESS)
 		{
@@ -555,6 +582,157 @@ namespace PVEngine
 			std::cout << "Shader module created successfully!" << std::endl;
 		}
 	}
+
+	void PlanetVulkan::CreateFramebuffers()
+	{
+		swapChainFramebuffers.resize(swapChainImageViews.size(), VDeleter<VkFramebuffer>{logicalDevice, vkDestroyFramebuffer});
+
+		for (size_t i = 0; i < swapChainImageViews.size(); i++)
+		{
+			VkImageView attachments[] = { swapChainImageViews[i] };
+
+
+			VkFramebufferCreateInfo framebufferInfo = {};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = renderPass;
+			framebufferInfo.attachmentCount = 1;
+			framebufferInfo.pAttachments = attachments;
+			framebufferInfo.width = swapChainExtent.width;
+			framebufferInfo.height = swapChainExtent.height;
+			framebufferInfo.layers = 1;
+
+			if (vkCreateFramebuffer(logicalDevice, &framebufferInfo, nullptr, swapChainFramebuffers[i].replace()) != VK_SUCCESS)
+			{
+				throw std::runtime_error("Failed to create framebuffer");
+			}
+		}
+
+		std::cout << "Framebuffers created successfully!" << std::endl;
+	}
+
+	void PlanetVulkan::CreateCommandPool()
+	{
+		QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice);
+
+		VkCommandPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.queueFamilyIndex = queueFamilyIndices.displayFamily;
+
+		if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, commandPool.replace()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create command pool");
+		}
+		else
+		{
+			std::cout << "Command Pool created successfully" << std::endl;
+		}
+	}
+
+	void PlanetVulkan::CreateCommandBuffers()
+	{
+		commandBuffers.resize(swapChainFramebuffers.size());
+
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = commandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
+
+		if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create command buffers");
+		}
+		else
+		{
+			std::cout << "Command Buffers created successfully" << std::endl;
+		}
+
+		for (size_t i = 0; i < commandBuffers.size(); i++)
+		{
+			VkCommandBufferBeginInfo beginInfo = {};
+			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+
+			vkBeginCommandBuffer(commandBuffers[i], &beginInfo);
+
+			VkRenderPassBeginInfo renderPassInfo = {};
+			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+			renderPassInfo.renderPass = renderPass;
+			renderPassInfo.framebuffer = swapChainFramebuffers[i];
+			renderPassInfo.renderArea.offset = {0,0};
+			renderPassInfo.renderArea.extent = swapChainExtent;
+			VkClearValue clearColor = {0.0f, 0.0f, 0.0f, 1.0f};
+			renderPassInfo.clearValueCount = 1;
+			renderPassInfo.pClearValues = &clearColor;
+
+			vkCmdBeginRenderPass(commandBuffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+			vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+
+			vkCmdEndRenderPass(commandBuffers[i]);
+
+			if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS)
+			{
+				throw std::runtime_error("Failed to record command buffer");
+			}
+		}
+	}
+
+	void PlanetVulkan::CreateSemaphores()
+	{
+
+		VkSemaphoreCreateInfo semaphoreInfo = {};
+		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+		
+		if (vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, imageAvailableSemaphore.replace()) != VK_SUCCESS
+			|| vkCreateSemaphore(logicalDevice, &semaphoreInfo, nullptr, renderFinishedSemaphore.replace()) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create semaphores");
+		}
+		else
+		{
+			std::cout << "Semaphores created successfully" << std::endl;
+		}
+	}
+
+	void PlanetVulkan::DrawFrame()
+	{
+		uint32_t imageIndex;
+		vkAcquireNextImageKHR(logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+
+		VkSubmitInfo submitInfo = {};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		VkSemaphore waitSemaphores[] = {imageAvailableSemaphore};
+		VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+		submitInfo.waitSemaphoreCount = 1;
+		submitInfo.pWaitSemaphores = waitSemaphores;
+		submitInfo.pWaitDstStageMask = waitStages;
+		VkSemaphore signalSemaphores[] = { renderFinishedSemaphore };
+		submitInfo.signalSemaphoreCount = 1;
+		submitInfo.pSignalSemaphores = signalSemaphores;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
+
+		if (vkQueueSubmit(displayQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to submit draw command buffer");
+		}
+
+		VkPresentInfoKHR presentInfo = {};
+		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+		presentInfo.waitSemaphoreCount = 1;
+		presentInfo.pWaitSemaphores = signalSemaphores;
+
+		VkSwapchainKHR swapchains[] = { swapChain };
+		presentInfo.swapchainCount = 1;
+		presentInfo.pSwapchains = swapchains;
+		presentInfo.pImageIndices = &imageIndex;
+
+		vkQueuePresentKHR(displayQueue, &presentInfo );
+	}
+
 
 	QueueFamilyIndices PlanetVulkan::FindQueueFamilies(VkPhysicalDevice device)
 	{

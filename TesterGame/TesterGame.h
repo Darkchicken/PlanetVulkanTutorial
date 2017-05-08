@@ -15,8 +15,6 @@ private:
 
 	void InitSystems();
 
-	void GameLoop();
-
 	//member variables
 	PVEngine::PlanetVulkan m_engine;
 };

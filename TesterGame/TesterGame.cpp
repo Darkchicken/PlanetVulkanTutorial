@@ -21,13 +21,6 @@ void TesterGame::InitSystems()
 {
 	m_engine.InitVulkan();
 
-	GameLoop();
+	m_engine.GameLoop();
 }
 
-void TesterGame::GameLoop()
-{
-	while (!glfwWindowShouldClose(m_engine.windowObj.window))
-	{
-		glfwPollEvents();
-	}
-}
