@@ -7,10 +7,10 @@
 
 #include "Window.h"
 #include "VDeleter.h"
+#include "PVSwapchain.h"
 
 namespace PVEngine
 {
-
 	static std::vector<char> ReadFile(const std::string& filename)
 	{
 		std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -41,12 +41,7 @@ namespace PVEngine
 		}
 	};
 
-	struct SwapChainSupportDetails
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
+
 
 	class PlanetVulkan
 	{
@@ -56,12 +51,26 @@ namespace PVEngine
 
 		void InitVulkan();
 
+		void CleanupVulkan();
+
 		void GameLoop();
 
 		Window windowObj;
 
 	private:
+		static void OnWindowResized(GLFWwindow* window, int width, int height)
+		{
+			if (width == 0 || height == 0)
+				return;
+
+			PlanetVulkan* engine = reinterpret_cast<PlanetVulkan*>(glfwGetWindowUserPointer(window));
+			engine->RecreateSwapChain();
+		}
+		void InitWindow();
+
 		void CreateInstance();
+
+		void CleanupSwapChain();
 
 		bool CheckValidationLayerSupport();
 
@@ -71,23 +80,25 @@ namespace PVEngine
 
 		void CreateSurface();
 
+		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+
 		void GetPhysicalDevices();
 
 		int RateDeviceSuitability(VkPhysicalDevice deviceToRate);
 
 		void CreateLogicalDevice();
 
-		void CreateSwapChain();
+		void RecreateSwapChain();
+		//void CreateSwapChain();
 
-		void CreateImageViews();
 
 		void CreateRenderPass();
 
 		void CreateGraphicsPipeline();
 
-		void CreateShaderModule(const std::vector<char>& code, VDeleter<VkShaderModule>& shaderModule);
+		VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
-		void CreateFramebuffers();
+		
 
 		void CreateCommandPool();
 		
@@ -101,13 +112,7 @@ namespace PVEngine
 
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 
-		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
-
-		VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
-
-		VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR> availablePresentModes);
-
-		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+		
 
 
 		VkResult CreateDebugReportCallbackEXT(
@@ -160,45 +165,41 @@ namespace PVEngine
 		const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
 		///Vulkan Handles
-		VDeleter<VkInstance> instance { vkDestroyInstance };
+		VkInstance instance;
 
-		VDeleter<VkDebugReportCallbackEXT> callback {instance, DestroyDebugReportCallbackEXT };
+		VkDebugReportCallbackEXT callback;
 
-		VDeleter<VkSurfaceKHR> surface{instance, vkDestroySurfaceKHR};
+		VkSurfaceKHR surface;
 
 		VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
-		VDeleter<VkDevice> logicalDevice{ vkDestroyDevice };
+		VkDevice logicalDevice;
 
 		VkQueue displayQueue;
 
-		VDeleter<VkSwapchainKHR> swapChain{logicalDevice, vkDestroySwapchainKHR};
+		PVSwapchain* swapchain;
 
-		std::vector<VkImage> swapChainImages;
+		
 
-		std::vector<VDeleter<VkImageView>> swapChainImageViews;
+		VkRenderPass renderPass;
 
-		VDeleter<VkRenderPass> renderPass{logicalDevice, vkDestroyRenderPass};
+		VkPipelineLayout pipelineLayout;
 
-		VDeleter<VkPipelineLayout> pipelineLayout{logicalDevice, vkDestroyPipelineLayout};
+		VkPipeline graphicsPipeline;
 
-		VDeleter<VkPipeline> graphicsPipeline{logicalDevice, vkDestroyPipeline};
+		
 
-		std::vector<VDeleter<VkFramebuffer>> swapChainFramebuffers;
-
-		VDeleter<VkCommandPool> commandPool{logicalDevice, vkDestroyCommandPool};
+		VkCommandPool commandPool;
 
 		std::vector<VkCommandBuffer> commandBuffers;
 
-		VDeleter<VkSemaphore> imageAvailableSemaphore {logicalDevice, vkDestroySemaphore};
+		VkSemaphore imageAvailableSemaphore;
 
-		VDeleter<VkSemaphore> renderFinishedSemaphore{ logicalDevice, vkDestroySemaphore };
+		VkSemaphore renderFinishedSemaphore;
 
 
 
-		// store swap chain details
-		VkFormat swapChainImageFormat;
-		VkExtent2D swapChainExtent;
+		
 
 		
 

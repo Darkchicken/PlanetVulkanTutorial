@@ -27,12 +27,18 @@
     <ClInclude Include="PlanetVulkan.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PVSwapchain.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Window.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="PlanetVulkan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PVSwapchain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
