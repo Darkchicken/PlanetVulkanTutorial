@@ -149,12 +149,15 @@
   <ItemGroup>
     <ClInclude Include="PlanetVulkan.h" />
     <ClInclude Include="PVSwapchain.h" />
+    <ClInclude Include="PVVertex.h" />
+    <ClInclude Include="PVVertexBuffer.h" />
     <ClInclude Include="VDeleter.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PlanetVulkan.cpp" />
     <ClCompile Include="PVSwapchain.cpp" />
+    <ClCompile Include="PVVertexBuffer.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

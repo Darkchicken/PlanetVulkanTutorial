@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include "PVVertex.h"
 
 namespace PVEngine
 {
@@ -17,6 +18,7 @@ namespace PVEngine
 	PlanetVulkan::~PlanetVulkan()
 	{
 		delete swapchain;
+		delete vertexBuffer;
 	}
 
 	void PlanetVulkan::InitVulkan()
@@ -33,6 +35,8 @@ namespace PVEngine
 		CreateGraphicsPipeline();
 		swapchain->CreateFramebuffers(&renderPass);
 		CreateCommandPool();
+		vertexBuffer = new PVVertexBuffer();
+		vertexBuffer->Create(&logicalDevice, &physicalDevice);
 		CreateCommandBuffers();
 		CreateSemaphores();
 	}
@@ -40,6 +44,8 @@ namespace PVEngine
 	void PlanetVulkan::CleanupVulkan()
 	{
 		CleanupSwapChain();
+
+		vertexBuffer->Cleanup(&logicalDevice);
 
 		vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, VK_NULL_HANDLE);
 		vkDestroySemaphore(logicalDevice, imageAvailableSemaphore, VK_NULL_HANDLE);
@@ -461,8 +467,12 @@ namespace PVEngine
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-		vertexInputInfo.vertexBindingDescriptionCount = 0;
-		vertexInputInfo.vertexAttributeDescriptionCount = 0;
+		auto bindingDescription = Vertex::getBindingDescription();
+		auto attributeDescriptions = Vertex::getAttributeDescriptions();
+		vertexInputInfo.vertexBindingDescriptionCount = 1;
+		vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
+		vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
+		vertexInputInfo.pVertexAttributeDescriptions = attributeDescriptions.data();
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
 		inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -647,7 +657,11 @@ namespace PVEngine
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-			vkCmdDraw(commandBuffers[i], 3, 1, 0, 0);
+			VkBuffer vertexBuffers[] = { *vertexBuffer->GetVertexBuffer() };
+			VkDeviceSize offsets[] = { 0 };
+			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+
+			vkCmdDraw(commandBuffers[i], vertexBuffer->GetVerticesSize(), 1, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
 

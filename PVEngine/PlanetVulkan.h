@@ -8,6 +8,7 @@
 #include "Window.h"
 #include "VDeleter.h"
 #include "PVSwapchain.h"
+#include "PVVertexBuffer.h"
 
 namespace PVEngine
 {
@@ -190,6 +191,8 @@ namespace PVEngine
 		
 
 		VkCommandPool commandPool;
+
+		PVVertexBuffer* vertexBuffer;
 
 		std::vector<VkCommandBuffer> commandBuffers;
 
