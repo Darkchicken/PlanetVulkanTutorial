@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <set>
 #include "PVVertex.h"
 
 namespace PVEngine
@@ -18,6 +19,8 @@ namespace PVEngine
 	PlanetVulkan::~PlanetVulkan()
 	{
 		delete swapchain;
+		delete graphicsCommandPool;
+		delete transferCommandPool;
 		delete vertexBuffer;
 	}
 
@@ -34,9 +37,12 @@ namespace PVEngine
 		CreateRenderPass();
 		CreateGraphicsPipeline();
 		swapchain->CreateFramebuffers(&renderPass);
-		CreateCommandPool();
-		vertexBuffer = new PVVertexBuffer();
-		vertexBuffer->Create(&logicalDevice, &physicalDevice);
+		
+		QueueFamilyIndices indices = FindQueueFamilies(&physicalDevice, &surface);
+		graphicsCommandPool = new PVCommandPool(&logicalDevice, indices.graphicsFamily);
+		transferCommandPool = new PVCommandPool(&logicalDevice, indices.transferFamily , VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
+
+		vertexBuffer = new PVVertexBuffer(&logicalDevice, &physicalDevice, &surface, transferCommandPool->GetCommandPool(), &transferQueue);
 		CreateCommandBuffers();
 		CreateSemaphores();
 	}
@@ -50,7 +56,9 @@ namespace PVEngine
 		vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, VK_NULL_HANDLE);
 		vkDestroySemaphore(logicalDevice, imageAvailableSemaphore, VK_NULL_HANDLE);
 
-		vkDestroyCommandPool(logicalDevice, commandPool, VK_NULL_HANDLE);
+		graphicsCommandPool->Cleanup(&logicalDevice);
+		transferCommandPool->Cleanup(&logicalDevice);
+
 		vkDestroyDevice(logicalDevice, VK_NULL_HANDLE);
 		DestroyDebugReportCallbackEXT(instance, callback, VK_NULL_HANDLE);
 		vkDestroySurfaceKHR(instance, surface, VK_NULL_HANDLE);
@@ -63,7 +71,7 @@ namespace PVEngine
 	{
 		swapchain->CleanupFramebuffers();
 
-		vkFreeCommandBuffers(logicalDevice, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+		vkFreeCommandBuffers(logicalDevice, *graphicsCommandPool->GetCommandPool(), static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
 
 		vkDestroyPipeline(logicalDevice, graphicsPipeline, VK_NULL_HANDLE);
 		vkDestroyPipelineLayout(logicalDevice, pipelineLayout, VK_NULL_HANDLE);
@@ -305,7 +313,7 @@ namespace PVEngine
 	{
 		int score = 0;
 
-		QueueFamilyIndices indices = FindQueueFamilies(deviceToRate);
+		QueueFamilyIndices indices = FindQueueFamilies(&deviceToRate, &surface);
 		bool extensionsSupported = CheckDeviceExtensionSupport(deviceToRate);
 		if (!indices.isComplete() || !extensionsSupported)
 		{
@@ -345,16 +353,23 @@ namespace PVEngine
 
 	void PlanetVulkan::CreateLogicalDevice()
 	{
-		QueueFamilyIndices indices = FindQueueFamilies(physicalDevice);
+		QueueFamilyIndices indices = FindQueueFamilies(&physicalDevice, &surface);
 
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.pNext = nullptr;
-		queueCreateInfo.flags = 0;
-		queueCreateInfo.queueFamilyIndex = indices.displayFamily;
-		queueCreateInfo.queueCount = 1;
+		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+		std::set<int> uniqueQueueFamilies = { indices.graphicsFamily, indices.transferFamily };
 		const float queuePriority = 1.0f;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
+		for (int queueFamily : uniqueQueueFamilies)
+		{
+			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.pNext = nullptr;
+			queueCreateInfo.flags = 0;
+			queueCreateInfo.queueFamilyIndex = queueFamily;
+			queueCreateInfo.queueCount = 1;
+			queueCreateInfo.pQueuePriorities = &queuePriority;
+			queueCreateInfos.push_back(queueCreateInfo);
+		}
+		
 
 		VkPhysicalDeviceFeatures deviceFeatures = {};
 
@@ -363,7 +378,7 @@ namespace PVEngine
 		createInfo.pNext = nullptr;
 		createInfo.flags = 0;
 		createInfo.queueCreateInfoCount = 1;
-		createInfo.pQueueCreateInfos = &queueCreateInfo;
+		createInfo.pQueueCreateInfos = queueCreateInfos.data();
 		if (enableValidationLayers)
 		{
 			createInfo.enabledLayerCount = validationLayers.size();
@@ -387,7 +402,9 @@ namespace PVEngine
 			std::cout << "Logical device created successfully" << std::endl;
 		}
 
-		vkGetDeviceQueue(logicalDevice, indices.displayFamily, 0, &displayQueue);
+		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily, 0, &graphicsQueue);
+		vkGetDeviceQueue(logicalDevice, indices.transferFamily, 0, &transferQueue);
+
 	}
 
 
@@ -597,32 +614,13 @@ namespace PVEngine
 	}
 
 
-
-	void PlanetVulkan::CreateCommandPool()
-	{
-		QueueFamilyIndices queueFamilyIndices = FindQueueFamilies(physicalDevice);
-
-		VkCommandPoolCreateInfo poolInfo = {};
-		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-		poolInfo.queueFamilyIndex = queueFamilyIndices.displayFamily;
-
-		if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Failed to create command pool");
-		}
-		else
-		{
-			std::cout << "Command Pool created successfully" << std::endl;
-		}
-	}
-
 	void PlanetVulkan::CreateCommandBuffers()
 	{
 		commandBuffers.resize(swapchain->GetFramebufferSize());
 
 		VkCommandBufferAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-		allocInfo.commandPool = commandPool;
+		allocInfo.commandPool = *graphicsCommandPool->GetCommandPool();
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();
 
@@ -657,7 +655,7 @@ namespace PVEngine
 
 			vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-			VkBuffer vertexBuffers[] = { *vertexBuffer->GetVertexBuffer() };
+			VkBuffer vertexBuffers[] = { *vertexBuffer->GetBuffer() };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
@@ -707,7 +705,7 @@ namespace PVEngine
 		submitInfo.commandBufferCount = 1;
 		submitInfo.pCommandBuffers = &commandBuffers[imageIndex];
 
-		if (vkQueueSubmit(displayQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+		if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to submit draw command buffer");
 		}
@@ -722,39 +720,9 @@ namespace PVEngine
 		presentInfo.pSwapchains = swapchains;
 		presentInfo.pImageIndices = &imageIndex;
 
-		vkQueuePresentKHR(displayQueue, &presentInfo);
+		vkQueuePresentKHR(graphicsQueue, &presentInfo);
 	}
 
-
-	QueueFamilyIndices PlanetVulkan::FindQueueFamilies(VkPhysicalDevice device)
-	{
-		QueueFamilyIndices indices;
-
-		uint32_t queueFamilyCount = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
-		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
-		int i = 0;
-		for (const auto &queueFamily : queueFamilies)
-		{
-			VkBool32 presentSupport = false;
-			vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-
-			if (queueFamily.queueCount > 0 && queueFamily.queueFlags && VK_QUEUE_GRAPHICS_BIT && presentSupport)
-			{
-				indices.displayFamily = i;
-			}
-
-			if (indices.isComplete())
-			{
-				break;
-			}
-			i++;
-		}
-		return indices;
-	}
 	bool PlanetVulkan::CheckDeviceExtensionSupport(VkPhysicalDevice device)
 	{
 		uint32_t extensionCount;

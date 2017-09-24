@@ -148,6 +148,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PlanetVulkan.h" />
+    <ClInclude Include="PVBuffer.h" />
+    <ClInclude Include="PVCommandPool.h" />
+    <ClInclude Include="PVQueueFamily.h" />
     <ClInclude Include="PVSwapchain.h" />
     <ClInclude Include="PVVertex.h" />
     <ClInclude Include="PVVertexBuffer.h" />
@@ -156,6 +159,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="PlanetVulkan.cpp" />
+    <ClCompile Include="PVBuffer.cpp" />
+    <ClCompile Include="PVCommandPool.cpp" />
+    <ClCompile Include="PVQueueFamily.cpp" />
     <ClCompile Include="PVSwapchain.cpp" />
     <ClCompile Include="PVVertexBuffer.cpp" />
     <ClCompile Include="Window.cpp" />

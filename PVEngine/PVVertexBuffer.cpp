@@ -3,8 +3,10 @@
 namespace PVEngine
 {
 
-	PVVertexBuffer::PVVertexBuffer()
+	PVVertexBuffer::PVVertexBuffer(const VkDevice* logicalDevice, const VkPhysicalDevice* physicalDevice, const VkSurfaceKHR* surface,
+		const VkCommandPool* transferCommandPool, const VkQueue* transferQueue)
 	{
+		Create(logicalDevice, physicalDevice, surface, transferCommandPool, transferQueue);
 	}
 
 
@@ -12,67 +14,35 @@ namespace PVEngine
 	{
 	}
 
-	void PVVertexBuffer::Create(const VkDevice* logicalDevice, const VkPhysicalDevice* physicalDevice)
+	void PVVertexBuffer::Create(const VkDevice* logicalDevice, const VkPhysicalDevice* physicalDevice, const VkSurfaceKHR* surface,
+		const VkCommandPool* transferCommandPool, const VkQueue* transferQueue)
 	{
-		VkBufferCreateInfo bufferInfo = {};
-		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		bufferInfo.size = sizeof(vertices[0]) * vertices.size();
-		bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-		bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		if (vkCreateBuffer(*logicalDevice, &bufferInfo, nullptr, &vertexBuffer) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Failed to create vertex buffer");
-		}
-		else
-		{
-			std::cout << "Vertex buffer created successfully" << std::endl;
-		}
+		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
-		VkMemoryRequirements memRequirements;
-		vkGetBufferMemoryRequirements(*logicalDevice, vertexBuffer, &memRequirements);
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
 
-		VkMemoryAllocateInfo allocateInfo = {};
-		allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocateInfo.allocationSize = memRequirements.size;
-		allocateInfo.memoryTypeIndex = findMemoryType(*physicalDevice, memRequirements.memoryTypeBits, 
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-		if (vkAllocateMemory(*logicalDevice, &allocateInfo, nullptr, &vertexBufferMemory) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Failed to allocate vertex buffer memory");
-		}
-		else
-		{
-			std::cout << "Vertex buffer memory allocated successfully" << std::endl;
-		}
-
-		vkBindBufferMemory(*logicalDevice, vertexBuffer, vertexBufferMemory, 0);
+		createBuffer(logicalDevice, physicalDevice, surface, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
 
 		void* data;
-		vkMapMemory(*logicalDevice, vertexBufferMemory, 0, bufferInfo.size, 0, &data);
-		memcpy(data, vertices.data(), (size_t)bufferInfo.size);
-		vkUnmapMemory(*logicalDevice, vertexBufferMemory);
+		vkMapMemory(*logicalDevice, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, vertices.data(), (size_t)bufferSize);
+		vkUnmapMemory(*logicalDevice, stagingBufferMemory);
+
+		createBuffer(logicalDevice, physicalDevice, surface, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, vertexBuffer, vertexBufferMemory);
+
+		copyBuffer(logicalDevice, transferCommandPool, stagingBuffer, vertexBuffer, bufferSize, transferQueue);
+
+		vkDestroyBuffer(*logicalDevice, stagingBuffer, nullptr);
+		vkFreeMemory(*logicalDevice, stagingBufferMemory, nullptr);
 	}
 
 	void PVVertexBuffer::Cleanup(const VkDevice* logicalDevice)
 	{
-		vkDestroyBuffer(*logicalDevice, vertexBuffer, nullptr);
-		vkFreeMemory(*logicalDevice, vertexBufferMemory, nullptr);
+		cleanupBuffer(logicalDevice, vertexBuffer, vertexBufferMemory);
 	}
 
-	uint32_t PVVertexBuffer::findMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
-	{
-		VkPhysicalDeviceMemoryProperties memProperties;
-		vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-		for (uint32_t i = 0; i < memProperties.memoryTypeCount; ++i)
-		{
-			if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			{
-				return i;
-			}
-		}
-
-		throw std::runtime_error("Failed to find suitable memory type");
-	}
+	
 }

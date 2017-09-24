@@ -9,6 +9,8 @@
 #include "VDeleter.h"
 #include "PVSwapchain.h"
 #include "PVVertexBuffer.h"
+#include "PVQueueFamily.h"
+#include "PVCommandPool.h"
 
 namespace PVEngine
 {
@@ -30,19 +32,6 @@ namespace PVEngine
 
 		return buffer;
 	}
-
-
-	struct QueueFamilyIndices
-	{
-		int displayFamily = -1;
-		
-		bool isComplete()
-		{
-			return displayFamily >= 0;
-		}
-	};
-
-
 
 	class PlanetVulkan
 	{
@@ -98,18 +87,12 @@ namespace PVEngine
 		void CreateGraphicsPipeline();
 
 		VkShaderModule CreateShaderModule(const std::vector<char>& code);
-
-		
-
-		void CreateCommandPool();
 		
 		void CreateCommandBuffers();
 
 		void CreateSemaphores();
 
 		void DrawFrame();
-
-		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device);
 
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
 
@@ -176,7 +159,9 @@ namespace PVEngine
 
 		VkDevice logicalDevice;
 
-		VkQueue displayQueue;
+		VkQueue graphicsQueue;
+
+		VkQueue transferQueue;
 
 		PVSwapchain* swapchain;
 
@@ -188,9 +173,9 @@ namespace PVEngine
 
 		VkPipeline graphicsPipeline;
 
-		
+		PVCommandPool* graphicsCommandPool;
 
-		VkCommandPool commandPool;
+		PVCommandPool* transferCommandPool;
 
 		PVVertexBuffer* vertexBuffer;
 
