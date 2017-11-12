@@ -51,6 +51,8 @@ namespace PVEngine
 	{
 		CleanupSwapChain();
 
+		vertexBuffer->CleanupIndexBuffer(&logicalDevice);
+
 		vertexBuffer->Cleanup(&logicalDevice);
 
 		vkDestroySemaphore(logicalDevice, renderFinishedSemaphore, VK_NULL_HANDLE);
@@ -659,7 +661,10 @@ namespace PVEngine
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-			vkCmdDraw(commandBuffers[i], vertexBuffer->GetVerticesSize(), 1, 0, 0);
+			VkBuffer indexBuffer = *vertexBuffer->GetIndexBuffer();
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(vertexBuffer->GetIndicesSize()), 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
 
