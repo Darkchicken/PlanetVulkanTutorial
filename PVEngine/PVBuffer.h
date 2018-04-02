@@ -10,6 +10,8 @@ namespace PVEngine
 		PVBuffer();
 		~PVBuffer();
 
+		VkBuffer* GetBuffer() { return &buffer; }
+
 	protected:
 		void createBuffer(const VkDevice* logicalDevice, const VkPhysicalDevice* physicalDevice,
 			const VkSurfaceKHR* surface, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, 
@@ -21,6 +23,10 @@ namespace PVEngine
 
 		void copyBuffer(const VkDevice* logicalDevice, const VkCommandPool* commandPool, VkBuffer srcBuffer, 
 			VkBuffer dstBuffer, VkDeviceSize size, const VkQueue* queue);
+
+	protected:
+		VkBuffer buffer;
+		VkDeviceMemory bufferMemory;
 	};
 }
 

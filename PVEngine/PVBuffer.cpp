@@ -20,12 +20,23 @@ namespace PVEngine
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.size = size;
 		bufferInfo.usage = usage;
-		bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+		
 
 		QueueFamilyIndices indices = FindQueueFamilies(physicalDevice, surface);
-		uint32_t indicesArray[] = { static_cast<uint32_t>(indices.graphicsFamily), static_cast<uint32_t>(indices.transferFamily) };
-		bufferInfo.pQueueFamilyIndices = indicesArray;
-		bufferInfo.queueFamilyIndexCount = 2;
+		if (indices.graphicsFamily == indices.transferFamily)
+		{
+			bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+			uint32_t indicesArray[] = { static_cast<uint32_t>(indices.graphicsFamily)};
+			bufferInfo.pQueueFamilyIndices = indicesArray;
+			bufferInfo.queueFamilyIndexCount = 1;
+		}
+		else
+		{
+			bufferInfo.sharingMode = VK_SHARING_MODE_CONCURRENT;
+			uint32_t indicesArray[] = { static_cast<uint32_t>(indices.graphicsFamily), static_cast<uint32_t>(indices.transferFamily) };
+			bufferInfo.pQueueFamilyIndices = indicesArray;
+			bufferInfo.queueFamilyIndexCount = 2;
+		}
 		if (vkCreateBuffer(*logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
 		{
 			throw std::runtime_error("Failed to create buffer");

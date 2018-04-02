@@ -9,6 +9,8 @@
 #include "VDeleter.h"
 #include "PVSwapchain.h"
 #include "PVVertexBuffer.h"
+#include "PVIndexBuffer.h"
+#include "PVUniformBuffer.h"
 #include "PVQueueFamily.h"
 #include "PVCommandPool.h"
 
@@ -83,6 +85,12 @@ namespace PVEngine
 
 
 		void CreateRenderPass();
+
+		void CreateDescriptorSetlayout();
+
+		void CreateDescriptorPool();
+
+		void CreateDescriptorSet();
 
 		void CreateGraphicsPipeline();
 
@@ -169,6 +177,8 @@ namespace PVEngine
 
 		VkRenderPass renderPass;
 
+		VkDescriptorSetLayout descriptorSetlayout;
+
 		VkPipelineLayout pipelineLayout;
 
 		VkPipeline graphicsPipeline;
@@ -177,13 +187,21 @@ namespace PVEngine
 
 		PVCommandPool* transferCommandPool;
 
+		VkDescriptorPool descriptorPool;
+
 		PVVertexBuffer* vertexBuffer;
+
+		PVIndexBuffer* indexBuffer;
+
+		PVUniformBuffer* uniformBuffer;
 
 		std::vector<VkCommandBuffer> commandBuffers;
 
 		VkSemaphore imageAvailableSemaphore;
 
 		VkSemaphore renderFinishedSemaphore;
+
+		VkDescriptorSet descriptorSet;
 
 
 

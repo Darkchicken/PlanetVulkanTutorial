@@ -21,6 +21,8 @@ namespace PVEngine
 		delete swapchain;
 		delete graphicsCommandPool;
 		delete transferCommandPool;
+		delete uniformBuffer;
+		delete indexBuffer;
 		delete vertexBuffer;
 	}
 
@@ -35,6 +37,7 @@ namespace PVEngine
 		swapchain = new PVSwapchain();
 		swapchain->Create(&logicalDevice, &physicalDevice, &surface, &windowObj, QuerySwapChainSupport(physicalDevice));
 		CreateRenderPass();
+		CreateDescriptorSetlayout();
 		CreateGraphicsPipeline();
 		swapchain->CreateFramebuffers(&renderPass);
 		
@@ -43,6 +46,12 @@ namespace PVEngine
 		transferCommandPool = new PVCommandPool(&logicalDevice, indices.transferFamily , VK_COMMAND_POOL_CREATE_TRANSIENT_BIT);
 
 		vertexBuffer = new PVVertexBuffer(&logicalDevice, &physicalDevice, &surface, transferCommandPool->GetCommandPool(), &transferQueue);
+		indexBuffer = new PVIndexBuffer(&logicalDevice, &physicalDevice, &surface, transferCommandPool->GetCommandPool(), &transferQueue);
+		uniformBuffer = new PVUniformBuffer(&logicalDevice, &physicalDevice, &surface, transferCommandPool->GetCommandPool(), &transferQueue);
+
+		CreateDescriptorPool();
+		CreateDescriptorSet();
+
 		CreateCommandBuffers();
 		CreateSemaphores();
 	}
@@ -51,7 +60,13 @@ namespace PVEngine
 	{
 		CleanupSwapChain();
 
-		vertexBuffer->CleanupIndexBuffer(&logicalDevice);
+		vkDestroyDescriptorPool(logicalDevice, descriptorPool, nullptr);
+
+		vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetlayout, nullptr);
+
+		uniformBuffer->CleanupUniformBuffer(&logicalDevice);
+
+		indexBuffer->CleanupIndexBuffer(&logicalDevice);
 
 		vertexBuffer->Cleanup(&logicalDevice);
 
@@ -87,6 +102,9 @@ namespace PVEngine
 		while (!glfwWindowShouldClose(windowObj.window))
 		{
 			glfwPollEvents();
+
+			//Update transformation matrices
+			uniformBuffer->Update(&logicalDevice, *swapchain->GetExtent());
 
 			DrawFrame();
 		}
@@ -459,6 +477,84 @@ namespace PVEngine
 		}
 	}
 
+	void PlanetVulkan::CreateDescriptorSetlayout()
+	{
+		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+		uboLayoutBinding.binding = 0;
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uboLayoutBinding.descriptorCount = 1;
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
+		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layoutInfo.bindingCount = 1;
+		layoutInfo.pBindings = &uboLayoutBinding;
+
+		if (vkCreateDescriptorSetLayout(logicalDevice, &layoutInfo, nullptr, &descriptorSetlayout) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create descriptor set layout");
+		}
+		else
+		{
+			std::cout << "Descriptor Set Layout created successfully" << std::endl;
+		}
+	}
+
+	void PlanetVulkan::CreateDescriptorPool()
+	{
+		VkDescriptorPoolSize poolSize = {};
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSize.descriptorCount = 1;
+
+		VkDescriptorPoolCreateInfo poolInfo = {};
+		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+		poolInfo.poolSizeCount = 1;
+		poolInfo.pPoolSizes = &poolSize;
+		poolInfo.maxSets = 1;
+
+		if (vkCreateDescriptorPool(logicalDevice, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create descriptor pool");
+		}
+		else
+		{
+			std::cout << "Descriptor Pool created successfully" << std::endl;
+		}
+	}
+
+	void PlanetVulkan::CreateDescriptorSet()
+	{
+		VkDescriptorSetLayout layouts[] = { descriptorSetlayout };
+		VkDescriptorSetAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocInfo.descriptorPool = descriptorPool;
+		allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = layouts;
+		if(vkAllocateDescriptorSets(logicalDevice, &allocInfo, &descriptorSet) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create descriptor set");
+		}
+		else
+		{
+			std::cout << "Descriptor Set created successfully" << std::endl;
+		}
+		VkDescriptorBufferInfo bufferInfo = {};
+		bufferInfo.buffer = *uniformBuffer->GetBuffer();
+		bufferInfo.offset = 0;
+		bufferInfo.range = uniformBuffer->GetUniformBufferSize();
+
+		VkWriteDescriptorSet descriptorWrite = {};
+		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrite.dstSet = descriptorSet;
+		descriptorWrite.dstBinding = 0;
+		descriptorWrite.dstArrayElement = 0;
+		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrite.descriptorCount = 1;
+		descriptorWrite.pBufferInfo = &bufferInfo;
+
+		vkUpdateDescriptorSets(logicalDevice, 1, &descriptorWrite, 0, nullptr);
+	}
+
 	void PlanetVulkan::CreateGraphicsPipeline()
 	{
 		auto vertShaderCode = ReadFile("Shaders/vert.spv");
@@ -524,7 +620,7 @@ namespace PVEngine
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
 		rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
-		rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
+		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 
 		VkPipelineMultisampleStateCreateInfo multisampling = {};
@@ -551,6 +647,8 @@ namespace PVEngine
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+		pipelineLayoutInfo.setLayoutCount = 1;
+		pipelineLayoutInfo.pSetLayouts = &descriptorSetlayout;
 
 		if (vkCreatePipelineLayout(logicalDevice, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS)
 		{
@@ -661,10 +759,12 @@ namespace PVEngine
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
-			VkBuffer indexBuffer = *vertexBuffer->GetIndexBuffer();
-			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+			VkBuffer indexBfr = *indexBuffer->GetBuffer();
+			vkCmdBindIndexBuffer(commandBuffers[i], indexBfr, 0, VK_INDEX_TYPE_UINT32);
 
-			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(vertexBuffer->GetIndicesSize()), 1, 0, 0, 0);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSet, 0, nullptr);
+
+			vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indexBuffer->GetIndicesSize()), 1, 0, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
 
